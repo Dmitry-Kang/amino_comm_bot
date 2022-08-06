@@ -6,17 +6,18 @@ import asyncio
 import dateutil.parser
 import pretty_errors
 from threading import Thread, Lock
+import db as database
 
 # Импорт конфигов
 DEV = True # True = разработка, False = прод
 EMAIL=os.environ.get('EMAIL') # админ сообщества И(!) ведущий в чатах
 PASSWORD=os.environ.get('PASSWORD')
+COMID=os.environ.get('COMMUNITY_ID') # id сообщества
+USERID=None # ставится автоматом
 if DEV:
     EMAIL=config('EMAIL')
     PASSWORD=config('PASSWORD')
-
-USERID=None # ставится автоматом
-COMID=os.environ.get('COMMUNITY_ID') # id сообщества
+    COMID=config('COMMUNITY_ID')
 
 lock = Lock()
 WARNS = []
