@@ -1,1 +1,2 @@
-# amino_comm_bot
+# AminoAntiRaid
+the anti-raid bot for amino I created

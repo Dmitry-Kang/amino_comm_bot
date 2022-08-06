@@ -1,0 +1,11 @@
+aiohttp
+websockets
+chardet
+amino.py
+time
+asyncio
+dateutil.parser
+pretty_errors
+threading
+sqlite3
+json_minify

@@ -127,3 +127,8 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+test.py
+test3.py
+sync.py
+detectorRelease.py
+main copy.py
