@@ -1,12 +1,20 @@
 import amino
 import os
+from decouple import config
 import time
 import asyncio
 import dateutil.parser
 import pretty_errors
 from threading import Thread, Lock
+
+# Импорт конфигов
+DEV = True # True = разработка, False = прод
 EMAIL=os.environ.get('EMAIL') # админ сообщества И(!) ведущий в чатах
 PASSWORD=os.environ.get('PASSWORD')
+if DEV:
+    EMAIL=config('EMAIL')
+    PASSWORD=config('PASSWORD')
+
 USERID=None # ставится автоматом
 COMID=os.environ.get('COMMUNITY_ID') # id сообщества
 

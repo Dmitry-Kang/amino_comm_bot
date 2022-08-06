@@ -9,3 +9,4 @@ pretty_errors
 threading
 sqlite3
 json_minify
+python-decouple
