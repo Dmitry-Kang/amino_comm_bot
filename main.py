@@ -80,10 +80,12 @@ async def check_comments():
             elif (dateutil.parser.isoparse(comment_created) - dateutil.parser.isoparse(COMMENT_ANTI_SPAM[comment_author_uid])).total_seconds() <= 60:
                 if COMMENTS_WARNS.count(comment_author_uid) >= 4:
                     print("set read only for comment: " + comment_author + "\n")
-                    if STRIKED_USERS.count(author_uid) < 1:
+                    if await database.get_striked_users(author_uid).count(author_uid) < 1:
+                    # if STRIKED_USERS.count(author_uid) < 1:
                         print("striking: ", author_uid)
                         # await subclient.strike(userId=author_uid, time=1, reason="Spam blog comments")
-                        STRIKED_USERS.append(author_uid)
+                        await database.add_striked_users(author_uid, 0)
+                        # STRIKED_USERS.append(author_uid)
                     for i in COMMENTS_WARNS:
                         if i == comment_author_uid:
                             COMMENTS_WARNS.remove(comment_author_uid)
@@ -113,10 +115,12 @@ async def check_blog():
         elif (dateutil.parser.isoparse(BLOGS_ANTI_SPAM[author_uid]) - dateutil.parser.isoparse(blog_created)).total_seconds() <= 60:
             if BLOG_WARNS.count(author_uid) >= 1:
                 print("set read only for posts: " + author + "\n")
-                if STRIKED_USERS.count(author_uid) < 1:
+                if await database.get_striked_users(author_uid).count(author_uid) < 1:
+                # if STRIKED_USERS.count(author_uid) < 1:
                     print("striking: ", author_uid, author)
                     # await subclient.strike(userId=author_uid, time=1, reason="Spam blog posts")
-                    STRIKED_USERS.append(author_uid)
+                    await database.add_striked_users(author_uid, 0)
+                    # STRIKED_USERS.append(author_uid)
                 # await subclient.delete_blog()
                 for i in BLOG_WARNS:
                     if i == author_uid:
@@ -195,6 +199,7 @@ async def on_text_message(data):
             media_type = data.message.mediaType
             content = data.message.content
             if content is not None and media_type == 0:
+                await database.add_kicked_users(user_id)
                 await subclient.kick(chatId=data.message.chatId, userId=user_id, allowRejoin=False)
                 await subclient.send_message(chatId=chatid, message=f"{user_id} удален из чата за отправку системного сообщения")
         lock.acquire()
@@ -202,6 +207,7 @@ async def on_text_message(data):
             ANTI_SPAM[user_id] = int(time.time())
         elif int(time.time()) - ANTI_SPAM[user_id] <= 0.5:
             if WARNS.count(user_id) >= 4:
+                await database.add_kicked_users(user_id)
                 await subclient.kick(userId=user_id, chatId=data.message.chatId, allowRejoin=False)
                 await subclient.send_message(chatId=chatid, message=f"{user_id} удален из чата за спам")
                 for i in WARNS:
@@ -261,6 +267,7 @@ async def on_join_leave(data):
             JOIN_LEAVE_DETECTOR[user_id] = int(time.time())
         elif int(time.time()) - JOIN_LEAVE_DETECTOR[user_id] <= 1:
             lel = subclient.get_all_users()
+            await database.add_kicked_users(user_id)
             await subclient.kick(userId=user_id, chatId=chatid, allowRejoin=False)
             await subclient.send_message(chatId=chatid, message=f"{user_id} удален из чата за спам входом/выходом из чата")
             JOIN_LEAVE_DETECTOR[user_id] = None
