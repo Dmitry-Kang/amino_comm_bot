@@ -1,3 +1,4 @@
+from datetime import datetime
 import amino
 import os
 from decouple import config
@@ -80,7 +81,7 @@ async def check_comments():
                     striked_users = database.get_striked_users(author_uid)
                     if not commands.contains(striked_users, lambda x: x['userid'] == author_uid):
                         print("striking: ", author_uid)
-                        # await subclient.strike(userId=author_uid, time=1, reason="Spam blog comments")
+                        # await subclient.strike(userId=author_uid, time=5, reason="Spam blog comments")
                         database.add_striked_users(author_uid, 0)
                     for i in COMMENTS_WARNS:
                         if i == comment_author_uid:
@@ -113,7 +114,7 @@ async def check_blog():
                 striked_users = database.get_striked_users(author_uid)
                 if not commands.contains(striked_users, lambda x: x['userid'] == author_uid):
                     print("striking: ", author_uid, author)
-                    # await subclient.strike(userId=author_uid, time=1, reason="Spam blog posts")
+                    # await subclient.strike(userId=author_uid, time=5, reason="Spam blog posts")
                     database.add_striked_users(author_uid, 0)
                 # await subclient.delete_blog()
                 for i in BLOG_WARNS:
@@ -133,9 +134,26 @@ async def taskB():
         await check_blog()
         await check_comments()
 
+# async def task_check_striked_users():
+#     while True:
+#         await asyncio.sleep(5)
+        
+#         striked_users = database.get_striked_users()
+#         print("checking striked users\n", str(striked_users))
+#         for user in striked_users:
+#             if (user["date"] != "0"):
+#                 print("11", user)
+#                 await asyncio.sleep(5)
+#                 date = datetime.fromtimestamp(int(user["date"]))
+#                 if (date - datetime.now() < 0):
+#                     print(f"Removing from strike {user['date']}")
+#                     database.delete_striked_users(user["userid"])
+
+
 async def main():
     taska = loop.create_task(taskA())
     taskb = loop.create_task(taskB())
+    # taskc = loop.create_task(task_check_striked_users())
     await asyncio.wait([taska,taskb])
 
 # @client.event("on_chat_invite")
@@ -156,11 +174,13 @@ async def on_text_message(data):
     chatid = data.message.chatId
     nickname = data.message.author.nickname
     strcontent = str(data.message.content)
-    content = str(data.message.content).split()
+    content = strcontent.lower().split()
     mtype = data.message.type
     mediatype = data.message.mediaType # 103 = video # 113 = smile # 110 = voicemessage
     mid = data.message.messageId
     uid = data.message.author.userId
+    message_json = data.json
+    whitelist = database.get_whitelist()
 
     check = lambda s: all('a' <= x <= 'z' or 'а' <= x <= 'я' or '0' <= x <= '9' or x == "'" or x == '`' or x == "." or x == "~" or x == "!" 
                         or x == "@" or x == "#" or x == "$" or x == "%" or x == "^" or x == "&" or x == "*" or x == "(" or x == ")" 
@@ -168,20 +188,68 @@ async def on_text_message(data):
                         or x == "?" or x == "\\" or x == "|" for x in s.lower().replace(" ",""))
     
     #
-    #обрабатывает сообщения только в определенном соо и игнорит от самого бота
+    #обрабатывает сообщения только в определенном соо 
     #   
-    if (str(comid) != COMID or uid == USERID):
+    if (str(comid) != COMID): # or uid == USERID и игнорит от самого бота
         return
     print(f"{nickname}: {strcontent}")
-    #
-    #DEBUG
-    # 
-    # print(str(data.json))
+    print(f"{str(data.json)}")
+
+    if whitelist.count(uid) > 0: # Админка
+        #
+        # MUTE
+        #
+        if content[0] == "mute" and message_json["chatMessage"]["extensions"]["replyMessageId"] is not None:
+            if (len(content) > 1 and (content[1] == "1" or content[1] == "2" or content[1] == "3" or content[1] == "4" or content[1] == "5")):
+                reply_message = await subclient.get_message_info(chatId=chatid, messageId=message_json["chatMessage"]["extensions"]["replyMessageId"])
+                reply_uid = reply_message.json["uid"]
+                # reply_user = subclient.get_user_info(reply_uid)
+                # newdate = (datetime.now() - datetime(1970,1,1)).total_seconds() + 60 * int(content[1])
+                print("muting {} for {} minutes".format(str(reply_uid), content[1]))
+                # await subclient.strike(userId=reply_uid, time=content[1])
+                if content[1] == "1":
+                    await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {1} час")
+                elif content[1] == "2":
+                    await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {3} часа")
+                elif content[1] == "3":
+                    await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {6} часов")
+                elif content[1] == "4":
+                    await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {12} часов")
+                elif content[1] == "5":
+                    await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {24} часа")
+                return
+        #
+        # HEY
+        #
+        if content is not None and content[0] == "?hey":
+            try:
+                await subclient.send_message(chatId=chatid, message="work status: True")
+            except:
+                pass
+            return
+        #
+        #Join
+        #
+        # if content[0][0] == '!':
+        #     if content[0][1:].lower() == "join":
+        #         if any(user in uid for user in whitelist):
+        #             try:
+        #                 print(content[-1])
+        #                 id = client.get_from_code(content[-1]).objectId
+        #                 subclient.join_chat(id)
+        #                 subclient.send_message(chatId = chatid, message="Joined")
+        #             except:
+        #                 subclient.send_message(chatId = chatid, message="Error")
+        #         else:
+        #             subclient.send_message(chatId = chatid, message="You don't have permissions")
+        # return
+
     #
     # NOT LATIN AND KYRILLIC
     #
     if strcontent is not None and mediatype != 103 and mediatype != 113 and mediatype != 113 and not check(str(strcontent)):
         await subclient.delete_message(chatId=chatid, messageId=mid)
+        
     #
     #ANTIRAID
     #
@@ -209,29 +277,6 @@ async def on_text_message(data):
         elif int(time.time()) - int(database.get_anti_spam(user_id)[0]['date']) > 1:
             database.update_anti_spam(user_id, int(time.time()))
             database.delete_anti_spam_warns(user_id)
-    #
-    #HEY
-    #
-    if content is not None and content[0] == "?hey":
-        try:
-            await subclient.send_message(chatId=chatid, message="work status: True")
-        except:
-            pass
-    #
-    #Join
-    #
-    # if content[0][0] == '!':
-    #     if content[0][1:].lower() == "join":
-    #         if any(user in uid for user in whitelist):
-    #             try:
-    #                 print(content[-1])
-    #                 id = client.get_from_code(content[-1]).objectId
-    #                 subclient.join_chat(id)
-    #                 subclient.send_message(chatId = chatid, message="Joined")
-    #             except:
-    #                 subclient.send_message(chatId = chatid, message="Error")
-    #         else:
-    #             subclient.send_message(chatId = chatid, message="You don't have permissions")
 
 @client.event("on_group_member_join") # спам с перезаходами
 @client.event("on_group_member_leave")

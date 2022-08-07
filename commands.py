@@ -10,3 +10,10 @@ def count(list, filter):
         if filter(x):
             res = res + 1
     return res
+
+def is_int(str):
+    try:
+        int(str)
+        return True
+    except ValueError:
+        return False
