@@ -133,3 +133,4 @@ sync.py
 detectorRelease.py
 main copy.py
 device.json
+raid/raid.py
