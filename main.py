@@ -10,7 +10,7 @@ import db as database
 import commands, amino_commands
 
 # Импорт конфигов
-DEV = True # True = разработка, False = прод
+DEV = False # True = разработка, False = прод
 EMAIL=os.environ.get('EMAIL') # админ сообщества И(!) ведущий в чатах
 PASSWORD=os.environ.get('PASSWORD')
 COMID=os.environ.get('COMMUNITY_ID') # id сообщества
