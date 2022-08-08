@@ -4,5 +4,6 @@ chardet==5.0.0
 amino.py==3.0.4
 asyncio
 pretty_errors
+python-dateutil
 json_minify
 python-decouple
