@@ -1,8 +1,7 @@
-aiohttp
-websockets
-chardet
-amino.py
-time
+aiohttp==3.8.1
+websockets==10.3
+chardet==5.0.0
+amino.py==3.0.4
 asyncio
 dateutil.parser
 pretty_errors
