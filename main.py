@@ -1,6 +1,8 @@
 from datetime import datetime
 import amino
 import re
+import traceback
+import sys
 import os
 from decouple import config
 import time
@@ -11,8 +13,8 @@ import db as database
 import commands, amino_commands
 
 # Импорт конфигов
-DEV = False # True = разработка, False = прод
-DEBUG = False # True - выключены баны и кики
+DEV = False # False - прод
+DEBUG = False # False - включены баны и кики
 
 EMAIL=os.environ.get('EMAIL') # админ сообщества И(!) ведущий в чатах
 PASSWORD=os.environ.get('PASSWORD')
@@ -63,13 +65,13 @@ async def taskA():
         USERID = client.userId
         subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
         await client.session.close()
-    except Exception as e:
-        print(f"Exception in taskA: {str(e)}")
+    except Exception:
+        print(f"Exception in taskA: {traceback.format_exc()}")
     finally:
         return
 
 async def check_comments():
-    global subclient
+    subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
     COMMENTS_WARNS = []
     COMMENT_ANTI_SPAM = {}
     DEBUG = True
@@ -97,16 +99,16 @@ async def check_comments():
                         if not DEBUG:
                             try:
                                 await subclient.delete_comment(commentId=commentId,blogId=blogId)
-                            except Exception as e:
-                                print(f"Exception when deleting blog comment {author_uid}: {str(e)}")
+                            except Exception:
+                                print(f"Exception when deleting blog comment {author_uid}: {traceback.format_exc()}")
                         striked_users = database.get_striked_users(author_uid)
                         if not commands.contains(striked_users, lambda x: x['userid'] == author_uid):
                             print("striking for comment: ", author_uid)
                             if not DEBUG:
                                 try:
                                     await subclient.strike(userId=author_uid, time=5, reason="Spam blog comments")
-                                except Exception as e:
-                                    print(f"Exception when striking for comments {author_uid}: {str(e)}")
+                                except Exception:
+                                    print(f"Exception when striking for comments {author_uid}: {traceback.format_exc()}")
                             database.add_striked_users(author_uid, int((datetime.now()-datetime(1970,1,1)).total_seconds()) + 60 * 60 * 24)
                         for i in COMMENTS_WARNS:
                             if i == comment_author_uid:
@@ -118,13 +120,14 @@ async def check_comments():
                     for i in COMMENTS_WARNS:
                         if i == comment_author_uid:
                             COMMENTS_WARNS.remove(comment_author_uid)
-    except Exception as e:
-        print(f"Exception in check_comments: {str(e)}")
+    except Exception:
+        print(f"Exception in check_comments: {traceback.format_exc()}")
     finally:
+        await subclient.session.close()
         return
 
 async def check_blog():
-    global subclient
+    subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
     BLOG_WARNS = []
     BLOGS_ANTI_SPAM = {}
     DEBUG = True
@@ -145,16 +148,16 @@ async def check_blog():
                     if not DEBUG:
                         try:
                             await subclient.delete_blog(blogId=blogId)
-                        except Exception as e:
-                            print(f"Exception when deleting blog {author_uid}: {str(e)}")
+                        except Exception:
+                            print(f"Exception when deleting blog {author_uid}: {traceback.format_exc()}")
                     striked_users = database.get_striked_users(author_uid)
                     if not commands.contains(striked_users, lambda x: x['userid'] == author_uid):
                         print("striking for blog: ", author_uid, author)
                         if not DEBUG:
                             try:
                                 await subclient.strike(userId=author_uid, time=5, reason="Spam blog posts")
-                            except Exception as e:
-                                print(f"Exception when striking for post {author_uid}: {str(e)}")
+                            except Exception:
+                                print(f"Exception when striking for post {author_uid}: {traceback.format_exc()}")
                         database.add_striked_users(author_uid, int((datetime.now()-datetime(1970,1,1)).total_seconds()) + 60 * 60 * 24)
                     for i in BLOG_WARNS:
                         if i == author_uid:
@@ -166,9 +169,10 @@ async def check_blog():
                 for i in BLOG_WARNS:
                     if i == author_uid:
                         BLOG_WARNS.remove(author_uid)
-    except Exception as e:
-        print(f"Exception in check_blog: {str(e)}")
+    except Exception:
+        print(f"Exception in check_blog: {traceback.format_exc()}")
     finally:
+        await subclient.session.close()
         return
 
 async def taskB():
@@ -188,8 +192,8 @@ async def task_check_striked_users():
                 if (date - datetime.now() < 0):
                     print(f"Removing from strikes user {user['userid']}")
                     database.delete_striked_users(user["userid"])
-        except Exception as e:
-            print(f"Exception in task_check_striked_users: {str(e)}")
+        except Exception:
+            print(f"Exception in task_check_striked_users: {traceback.format_exc()}")
         finally:
             return
 
@@ -210,7 +214,7 @@ async def main():
 @client.event("on_voice_message")
 @client.event("on_sticker_message")
 async def on_text_message(data):
-    global subclient
+    subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
     global DEBUG
     #
     #STRINGS
@@ -250,6 +254,7 @@ async def on_text_message(data):
         #обрабатывает сообщения только в определенном соо 
         #
         if (str(comid) != COMID): # or uid == USERID и игнорит от самого бота
+            # await subclient.session.close()
             return
         print(f"{str(chatid)} {nickname}: {strcontent}")
         # print(f"{str(data.json)}")
@@ -276,6 +281,7 @@ async def on_text_message(data):
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {12} часов")
                     elif content[1] == "5":
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {24} часа")
+                    # await subclient.session.close()
                     return
             #
             # HEY
@@ -285,6 +291,7 @@ async def on_text_message(data):
                     await subclient.send_message(chatId=chatid, message="work status: True")
                 except:
                     pass
+                # await subclient.session.close()
                 return
             #
             #Join
@@ -301,6 +308,7 @@ async def on_text_message(data):
             #                 subclient.send_message(chatId = chatid, message="Error")
             #         else:
             #             subclient.send_message(chatId = chatid, message="You don't have permissions")
+            # await subclient.session.close()
             return
 
         #
@@ -344,9 +352,10 @@ async def on_text_message(data):
             elif int(time.time()) - int(database.get_anti_spam(user_id)[0]['date']) > 1:
                 database.update_anti_spam(user_id, int(time.time()))
                 database.delete_anti_spam_warns(user_id)
-    except Exception as e:
-        print(f"Exception in on_text_message: {str(e)}")
+    except Exception:
+        print(f"Exception in on_text_message: {traceback.format_exc()}")
     finally:
+        await subclient.session.close()
         return    
 
 @client.event("on_group_member_join") # спам с перезаходами
@@ -358,7 +367,7 @@ async def on_join_leave(data):
         # 
         # print(str(data.json))
         chatid = data.message.chatId
-        subclient = amino.AsyncSubClient(comId=COMID, profile=client.profile)
+        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
         user_id = data.message.author.userId
         text_to_print = "Joined chat"
         if (data.message.type==102):
@@ -370,7 +379,7 @@ async def on_join_leave(data):
             if not commands.contains(database.get_join_leave_spam(user_id), lambda x: x['userid'] == user_id):
                 database.add_join_leave_spam(user_id, int(time.time()))
             elif int(time.time()) - int(database.get_join_leave_spam(user_id)[0]['date']) <= 0.5:
-                lel = subclient.get_all_users()
+                lel = await subclient.get_all_users()
                 database.add_kicked_users(user_id)
                 print(f"{user_id} удален из чата за отправку системного сообщения")
                 if not DEBUG:
@@ -380,8 +389,8 @@ async def on_join_leave(data):
                 database.delete_join_leave_spam(user_id)
             elif int(time.time()) - int(database.get_join_leave_spam(user_id)[0]['date']) > 0.5:
                 database.update_join_leave_spam(user_id, int(time.time()))
-    except Exception as e:
-        print(f"Exception in on_join_leave: {str(e)}")
+    except Exception:
+        print(f"Exception in on_join_leave: {traceback.format_exc()}")
     finally:
         return
 
