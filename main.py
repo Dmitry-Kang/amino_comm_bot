@@ -288,6 +288,22 @@ async def on_text_message(data):
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {24} часа")
                     return
             #
+            # BAN
+            #
+            if content[0] == "ban" and message_json["chatMessage"]["extensions"]["replyMessageId"] is not None:
+                if (len(content) > 1 and (content[1] == "1" or content[1] == "2" or content[1] == "3" or content[1] == "4" or content[1] == "5")):
+                    reply_message = await subclient.get_message_info(chatId=chatid, messageId=message_json["chatMessage"]["extensions"]["replyMessageId"])
+                    reply_uid = reply_message.json["uid"]
+                    reply_user = subclient.get_user_info(reply_uid)
+                    # newdate = (datetime.now() - datetime(1970,1,1)).total_seconds() + 60 * int(content[1])
+                    print("muting user {} for {} minutes".format(str(reply_uid), content[1]))
+                    try:
+                        await subclient.ban(userId=reply_uid, reason="Ты нарушил правила")
+                        await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в бан")
+                    except:
+                        await subclient.send_message(chatId=chatid, message="work status: True")
+                  
+            #
             # HEY
             #
             if content is not None and content[0] == "?hey":
