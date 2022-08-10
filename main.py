@@ -12,7 +12,7 @@ import commands, amino_commands
 
 # Импорт конфигов
 DEV = False # True = разработка, False = прод
-DEBUG = True # True - выключены баны и кики
+DEBUG = False # True - выключены баны и кики
 
 EMAIL=os.environ.get('EMAIL') # админ сообщества И(!) ведущий в чатах
 PASSWORD=os.environ.get('PASSWORD')
@@ -72,6 +72,7 @@ async def check_comments():
     global subclient
     COMMENTS_WARNS = []
     COMMENT_ANTI_SPAM = {}
+    DEBUG = True
     try:
         bloglist = await subclient.get_recent_blogs(size=9999)
         for x in bloglist.json:
@@ -126,7 +127,7 @@ async def check_blog():
     global subclient
     BLOG_WARNS = []
     BLOGS_ANTI_SPAM = {}
-    
+    DEBUG = True
     try:
         bloglist = await subclient.get_recent_blogs(size=9999)
         for x in bloglist.json:
