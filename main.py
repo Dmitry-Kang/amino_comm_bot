@@ -306,9 +306,9 @@ async def on_text_message(data):
             #
             # HEY
             #
-            if content is not None and content[0] == "?hey":
+            if content is not None and content[0] == "?ping":
                 try:
-                    await subclient.send_message(chatId=chatid, message="work status: True")
+                    await subclient.send_message(chatId=chatid, message="pong")
                 except:
                     pass
                 return
