@@ -211,6 +211,7 @@ async def main():
 @client.event("on_sticker_message")
 async def on_text_message(data):
     global subclient
+    global DEBUG
     #
     #STRINGS
     #
