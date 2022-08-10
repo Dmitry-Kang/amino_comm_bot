@@ -275,7 +275,7 @@ async def on_text_message(data):
                     # reply_user = subclient.get_user_info(reply_uid)
                     # newdate = (datetime.now() - datetime(1970,1,1)).total_seconds() + 60 * int(content[1])
                     print("muting user {} for {} minutes".format(str(reply_uid), content[1]))
-                    await subclient.strike(userId=reply_uid, time=content[1])
+                    await subclient.strike(userId=reply_uid, time=int(content[1]))
                     if content[1] == "1":
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {1} час")
                     elif content[1] == "2":
