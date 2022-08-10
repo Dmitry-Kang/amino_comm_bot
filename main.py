@@ -123,7 +123,10 @@ async def check_comments():
     except Exception:
         print(f"Exception in check_comments: {traceback.format_exc()}")
     finally:
-        await subclient.session.close()
+        try:
+            await subclient.session.close()
+        except:
+            print(f"Exception in check_comments: {traceback.format_exc()}")
         return
 
 async def check_blog():
@@ -172,7 +175,10 @@ async def check_blog():
     except Exception:
         print(f"Exception in check_blog: {traceback.format_exc()}")
     finally:
-        await subclient.session.close()
+        try:
+            await subclient.session.close()
+        except:
+            print(f"Exception in check_blog: {traceback.format_exc()}")
         return
 
 async def taskB():
@@ -254,9 +260,8 @@ async def on_text_message(data):
         #обрабатывает сообщения только в определенном соо 
         #
         if (str(comid) != COMID): # or uid == USERID и игнорит от самого бота
-            # await subclient.session.close()
             return
-        print(f"{str(chatid)} {nickname}: {strcontent}")
+        print(f"{str(chatid)} {uid} {nickname}: {strcontent}")
         # print(f"{str(data.json)}")
 
         if whitelist.count(uid) > 0: # Админка
@@ -281,7 +286,6 @@ async def on_text_message(data):
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {12} часов")
                     elif content[1] == "5":
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {24} часа")
-                    # await subclient.session.close()
                     return
             #
             # HEY
@@ -291,7 +295,6 @@ async def on_text_message(data):
                     await subclient.send_message(chatId=chatid, message="work status: True")
                 except:
                     pass
-                # await subclient.session.close()
                 return
             #
             #Join
@@ -308,7 +311,6 @@ async def on_text_message(data):
             #                 subclient.send_message(chatId = chatid, message="Error")
             #         else:
             #             subclient.send_message(chatId = chatid, message="You don't have permissions")
-            # await subclient.session.close()
             return
 
         #
@@ -355,7 +357,10 @@ async def on_text_message(data):
     except Exception:
         print(f"Exception in on_text_message: {traceback.format_exc()}")
     finally:
-        await subclient.session.close()
+        try:
+            await subclient.session.close()
+        except:
+            print(f"Exception in on_text_message: {traceback.format_exc()}")
         return    
 
 @client.event("on_group_member_join") # спам с перезаходами
