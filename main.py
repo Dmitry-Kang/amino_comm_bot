@@ -71,11 +71,11 @@ async def taskA():
         return
 
 async def check_comments():
-    subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
     COMMENTS_WARNS = []
     COMMENT_ANTI_SPAM = {}
     DEBUG = True
     try:
+        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
         bloglist = await subclient.get_recent_blogs(size=9999)
         for x in bloglist.json:
             author = x['author']['nickname']
@@ -127,11 +127,11 @@ async def check_comments():
         return
 
 async def check_blog():
-    subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
     BLOG_WARNS = []
     BLOGS_ANTI_SPAM = {}
     DEBUG = True
     try:
+        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
         bloglist = await subclient.get_recent_blogs(size=9999)
         for x in bloglist.json:
             author = x['author']['nickname']
@@ -214,12 +214,12 @@ async def main():
 @client.event("on_voice_message")
 @client.event("on_sticker_message")
 async def on_text_message(data):
-    subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
     global DEBUG
-    #
-    #STRINGS
-    #
     try:
+        #
+        #STRINGS
+        #
+        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
         comid = data.comId
         chatid = data.message.chatId
         nickname = data.message.author.nickname
