@@ -314,10 +314,10 @@ async def on_text_message(data):
         #
         # NOT LATIN AND KYRILLIC
         #
-        if strcontent is not None and mediatype == 0 and not check(str(strcontent)):
-            print(f"{chatid} deleting message {strcontent} {mid}")
-            if not DEBUG:
-                await subclient.delete_message(chatId=chatid, messageId=mid)
+        # if strcontent is not None and mediatype == 0 and not check(str(strcontent)):
+        #     print(f"{chatid} deleting message {strcontent} {mid}")
+        #     if not DEBUG:
+        #         await subclient.delete_message(chatId=chatid, messageId=mid)
             
         #
         #ANTIRAID
