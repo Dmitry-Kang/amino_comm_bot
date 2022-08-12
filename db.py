@@ -1,12 +1,10 @@
-import threading
 import sqlite3
-
+from multiprocessing import Lock
 
 conn = sqlite3.connect("db.db", check_same_thread=False)
-# conn.set_client_encoding("utf-8")
 cursor = conn.cursor()
 
-lock = threading.RLock()
+lock = Lock()
 
 def init(bot):
     pass

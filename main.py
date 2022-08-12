@@ -15,6 +15,7 @@ import commands, amino_commands
 # Импорт конфигов
 DEV = False # False - прод
 DEBUG = False # False - включены баны и кики
+POSTS = False # True - включены проверки постов и комментов
 
 EMAIL=os.environ.get('EMAIL') # админ сообщества И(!) ведущий в чатах
 PASSWORD=os.environ.get('PASSWORD')
@@ -182,10 +183,12 @@ async def check_blog():
         return
 
 async def taskB():
+    global POSTS
     while True:
         await asyncio.sleep(60)
-        await check_blog()
-        await check_comments()
+        if (POSTS):
+            await check_blog()
+            await check_comments()
 
 async def task_check_striked_users():
     while True:
@@ -203,11 +206,21 @@ async def task_check_striked_users():
         finally:
             return
 
+async def task_check_antiban():
+    try:
+        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
+        all_users = await subclient.get_all_users("recent", 0, 9999)
+        # for user in all_users
+    except Exception:
+            print(f"Exception in task_check_antiban: {traceback.format_exc()}")
+    finally:
+        return
 
 async def main():
     taska = loop.create_task(taskA())
     taskb = loop.create_task(taskB())
     taskc = loop.create_task(task_check_striked_users())
+    # taskd = loop.create_task(task_check_antiban())
     await asyncio.wait([taska,taskb,taskc])
 
 # @client.event("on_chat_invite")
