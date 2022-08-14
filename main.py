@@ -54,17 +54,15 @@ pretty_errors.blacklist('c:/python')
 #CLIENT, LOGIN, SUBCLIENT
 #
 client = amino.AsyncClient()
-subclient = None
 
 async def taskA():
-    global subclient
     global client
     global USERID
     try:
-        print("login")
         await client.login(email=EMAIL, password=PASSWORD)
+        print("login success")
         USERID = client.userId
-        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
+        subclient = amino.AsyncSubClient(comId=COMID, profile=client.profile)
         await client.session.close()
     except Exception:
         print(f"Exception in taskA: {traceback.format_exc()}")
@@ -72,11 +70,11 @@ async def taskA():
         return
 
 async def check_comments():
+    global DEBUG
     COMMENTS_WARNS = []
     COMMENT_ANTI_SPAM = {}
-    DEBUG = True
     try:
-        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
+        subclient = amino.AsyncSubClient(comId=COMID, profile=client.profile)
         bloglist = await subclient.get_recent_blogs(size=9999)
         for x in bloglist.json:
             author = x['author']['nickname']
@@ -131,11 +129,11 @@ async def check_comments():
         return
 
 async def check_blog():
+    global DEBUG
     BLOG_WARNS = []
     BLOGS_ANTI_SPAM = {}
-    DEBUG = True
     try:
-        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
+        subclient = amino.AsyncSubClient(comId=COMID, profile=client.profile)
         bloglist = await subclient.get_recent_blogs(size=9999)
         for x in bloglist.json:
             author = x['author']['nickname']
@@ -198,23 +196,59 @@ async def task_check_striked_users():
             print("Checking striked users:")
             for user in striked_users:
                 date = datetime.fromtimestamp(int(user["date"]))
-                if (date - datetime.now() < 0):
+                if (date - datetime.now()).total_seconds() < 0:
                     print(f"Removing from strikes user {user['userid']}")
                     database.delete_striked_users(user["userid"])
         except Exception:
             print(f"Exception in task_check_striked_users: {traceback.format_exc()}")
         finally:
-            return
+            return  
+def get_anti_ban(s):
+    if not s or len(s) < 1:
+        print("1")
+        return False
+    if s.find('_(.a=') > -1:
+        return True
+    print("2")
+    return False
+def get_percent(s):
+    if not s or len(s) < 1:
+        return 1.0
+    s = s.lower().replace(" ","")
+    leng = len(s)
+    len_true = 0
+    for x in s:
+        if ('a' <= x <= 'z' or 'а' <= x <= 'я' or '0' <= x <= '9' or x == "'" or x == '`' or x == "." or x == "~" or x == "!" 
+                    or x == "@" or x == "#" or x == "$" or x == "%" or x == "^" or x == "&" or x == "*" or x == "(" or x == ")" 
+                    or x == "-" or x == "_" or x == "=" or x == "+" or x == "," or x == "/" or x == "<" or x == ">" 
+                    or x == "?" or x == "\\" or x == "|" or x == ":" or x == ";" or x == '"' or x == "[" or x == "]" or x == "{" or x == "}" or x == "ё"):
+            len_true += 1
+    return len_true/leng
 
 async def task_check_antiban():
     try:
+        res = ""
         subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
-        all_users = await subclient.get_all_users("recent", 0, 9999)
-        # for user in all_users
+        all_users = await subclient.get_all_users("recent", 0, 99999)
+        for user in all_users.json['userProfileList']:
+            user_uid = user['uid']
+            user_name = user['nickname']
+            user_content = user['content']
+            if get_percent(user_content) < 0.05 or get_anti_ban(user_content):
+                # res += f"\u200e\u200f@{user_name}\u202c\u202d:{get_percent(user_content)}:{get_anti_ban(user_content)}\n"
+                res += f"\u200e\u200f@{user_name}\u202c\u202d\n"
+        
+        
     except Exception:
             print(f"Exception in task_check_antiban: {traceback.format_exc()}")
     finally:
-        return
+        try:
+            await subclient.session.close()
+        except:
+            print(f"Exception in task_check_antiban: {traceback.format_exc()}")
+        if len(res) == 0:
+            res = "Не обнаружено"
+        return f"Подозрительные персоны:\n{res}"  
 
 async def main():
     taska = loop.create_task(taskA())
@@ -238,7 +272,7 @@ async def on_text_message(data):
         #
         #STRINGS
         #
-        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
+        subclient = amino.AsyncSubClient(comId=COMID, profile=client.profile)
         comid = data.comId
         chatid = data.message.chatId
         nickname = data.message.author.nickname
@@ -324,6 +358,17 @@ async def on_text_message(data):
                     pass
                 return
             #
+            # STRANGE USERS
+            #
+            if content is not None and content[0] == "get" and content[1] == "antiban":
+                try:
+                    msg = await task_check_antiban()
+                    print("msg", str(msg))
+                    await subclient.send_message(chatId=chatid, message=msg)
+                except:
+                    print(f"Exception in STRANGE USERS: {traceback.format_exc()}")
+                return
+            #
             #Join
             #
             # if content[0][0] == '!':
@@ -399,7 +444,7 @@ async def on_join_leave(data):
         # 
         # print(str(data.json))
         chatid = data.message.chatId
-        subclient = await amino.AsyncSubClient(comId=COMID, profile=client.profile)
+        subclient = amino.AsyncSubClient(comId=COMID, profile=client.profile)
         user_id = data.message.author.userId
         text_to_print = "Joined chat"
         if (data.message.type==102):
@@ -424,7 +469,11 @@ async def on_join_leave(data):
     except Exception:
         print(f"Exception in on_join_leave: {traceback.format_exc()}")
     finally:
-        return
+        try:
+            await subclient.session.close()
+        except:
+            print(f"Exception in on_join_leave: {traceback.format_exc()}")
+        return  
 
 loop = asyncio.get_event_loop()
 
