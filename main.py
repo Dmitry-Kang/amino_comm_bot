@@ -237,8 +237,6 @@ async def task_check_antiban():
             if get_percent(user_content) < 0.05 or get_anti_ban(user_content):
                 # res += f"\u200e\u200f@{user_name}\u202c\u202d:{get_percent(user_content)}:{get_anti_ban(user_content)}\n"
                 res += f"\u200e\u200f@{user_name}\u202c\u202d\n"
-        
-        
     except Exception:
             print(f"Exception in task_check_antiban: {traceback.format_exc()}")
     finally:
@@ -363,7 +361,6 @@ async def on_text_message(data):
             if content is not None and content[0] == "get" and content[1] == "antiban":
                 try:
                     msg = await task_check_antiban()
-                    print("msg", str(msg))
                     await subclient.send_message(chatId=chatid, message=msg)
                 except:
                     print(f"Exception in STRANGE USERS: {traceback.format_exc()}")
