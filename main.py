@@ -16,6 +16,7 @@ import commands, amino_commands
 DEV = False # False - прод
 DEBUG = False # False - включены баны и кики
 POSTS = False # True - включены проверки постов и комментов
+BOT_CHAT_ID = "f7b2d964-247a-494f-9686-19fb0b0690bb"
 
 EMAIL=os.environ.get('EMAIL') # админ сообщества И(!) ведущий в чатах
 PASSWORD=os.environ.get('PASSWORD')
@@ -249,11 +250,16 @@ async def task_check_antiban():
         return f"Подозрительные персоны:\n{res}"  
 
 async def main():
-    taska = loop.create_task(taskA())
-    taskb = loop.create_task(taskB())
-    taskc = loop.create_task(task_check_striked_users())
-    # taskd = loop.create_task(task_check_antiban())
-    await asyncio.wait([taska,taskb,taskc])
+    while True:
+        try:
+            taska = loop.create_task(taskA())
+            taskb = loop.create_task(taskB())
+            taskc = loop.create_task(task_check_striked_users())
+            # taskd = loop.create_task(task_check_antiban())
+            await asyncio.wait([taska,taskb,taskc])
+        except:
+            print(f"Exception in main: {traceback.format_exc()}")
+    
 
 # @client.event("on_chat_invite")
 # async def on_chat_invite(data):
@@ -323,14 +329,19 @@ async def on_text_message(data):
                     await subclient.strike(userId=reply_uid, time=int(content[1]))
                     if content[1] == "1":
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {1} час")
+                        await subclient.send_message(chatId=BOT_CHAT_ID, message=f"Пользователь отправился в мут на {1} час")
                     elif content[1] == "2":
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {3} часа")
+                        await subclient.send_message(chatId=BOT_CHAT_ID, message=f"Пользователь отправился в мут на {3} часа")
                     elif content[1] == "3":
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {6} часов")
+                        await subclient.send_message(chatId=BOT_CHAT_ID, message=f"Пользователь отправился в мут на {6} часов")
                     elif content[1] == "4":
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {12} часов")
+                        await subclient.send_message(chatId=BOT_CHAT_ID, message=f"Пользователь отправился в мут на {12} часов")
                     elif content[1] == "5":
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в мут на {24} часа")
+                        await subclient.send_message(chatId=BOT_CHAT_ID, message=f"Пользователь отправился в мут на {24} часа")
                     return
             #
             # BAN
@@ -339,12 +350,14 @@ async def on_text_message(data):
                     reply_message = await subclient.get_message_info(chatId=chatid, messageId=message_json["chatMessage"]["extensions"]["replyMessageId"])
                     reply_uid = reply_message.json["uid"]
                     reply_user = subclient.get_user_info(reply_uid)
+                    user_name = reply_user['nickname']
                     print("ban user {}".format(str(reply_uid)))
                     try:
                         await subclient.ban(userId=reply_uid, reason="Ты нарушил правила")
                         await subclient.send_message(chatId=chatid, message=f"Пользователь отправился в бан")
+                        await subclient.send_message(chatId=BOT_CHAT_ID, message=f"Пользователь{user_name} отправился в бан")
                     except:
-                        await subclient.send_message(chatId=chatid, message="work status: True")
+                        print(f"Exception in ban command: {traceback.format_exc()}")
                   
             #
             # HEY
@@ -353,7 +366,7 @@ async def on_text_message(data):
                 try:
                     await subclient.send_message(chatId=chatid, message="pong")
                 except:
-                    pass
+                    print(f"Exception in ping pong: {traceback.format_exc()}")
                 return
             #
             # STRANGE USERS
@@ -404,7 +417,8 @@ async def on_text_message(data):
                     print(f"{user_id} удален из чата за отправку системного сообщения")
                     if not DEBUG:
                         await subclient.kick(chatId=data.message.chatId, userId=user_id, allowRejoin=False)
-                        await subclient.send_message(chatId=chatid, message=f"Пользователь удален из чата за отправку системного сообщения")
+                        await subclient.send_message(chatId=chatid, message=f"{nickname} удален из чата за отправку системного сообщения")
+                        await subclient.send_message(chatId=BOT_CHAT_ID, message=f"{nickname} удален из чата за отправку системного сообщения")
                     database.add_kicked_users(user_id)
             if not commands.contains(database.get_anti_spam(user_id), lambda x: x['userid'] == user_id): # спам сообщениями с текстом
                 database.add_anti_spam(user_id, int(time.time()))
@@ -415,7 +429,8 @@ async def on_text_message(data):
                     print(f"{user_id} удален из чата за спам")
                     if not DEBUG:
                         await subclient.kick(userId=user_id, chatId=data.message.chatId, allowRejoin=False)
-                        await subclient.send_message(chatId=chatid, message=f"Пользователь удален из чата за спам")
+                        await subclient.send_message(chatId=chatid, message=f"{nickname} удален из чата за спам")
+                        await subclient.send_message(chatId=BOT_CHAT_ID, message=f"{nickname} удален из чата за спам")
                     database.add_kicked_users(user_id)
                     database.delete_anti_spam_warns(user_id)
                 else:
@@ -443,6 +458,7 @@ async def on_join_leave(data):
         chatid = data.message.chatId
         subclient = amino.AsyncSubClient(comId=COMID, profile=client.profile)
         user_id = data.message.author.userId
+        nickname = data.message.author.nickname
         text_to_print = "Joined chat"
         if (data.message.type==102):
             user_id = data.json['chatMessage']['uid']
@@ -458,7 +474,8 @@ async def on_join_leave(data):
                 print(f"{user_id} удален из чата за отправку системного сообщения")
                 if not DEBUG:
                     await subclient.kick(userId=user_id, chatId=chatid, allowRejoin=False)
-                    await subclient.send_message(chatId=chatid, message=f"{user_id} удален из чата за спам входом/выходом из чата")
+                    await subclient.send_message(chatId=chatid, message=f"{nickname} удален из чата за спам входом/выходом из чата")
+                    await subclient.send_message(chatId=BOT_CHAT_ID, message=f"{nickname} удален из чата за спам входом/выходом из чата")
                 database.add_kicked_users(user_id)
                 database.delete_join_leave_spam(user_id)
             elif int(time.time()) - int(database.get_join_leave_spam(user_id)[0]['date']) > 0.5:
