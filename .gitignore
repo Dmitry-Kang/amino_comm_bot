@@ -136,3 +136,4 @@ raid/raid.py
 test33.py
 test2.py
 raid/device.json
+getcomid.py

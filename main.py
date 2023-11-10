@@ -13,10 +13,10 @@ import db as database
 import commands, amino_commands
 
 # Импорт конфигов
-DEV = False # False - прод
+DEV = True # False - прод
 DEBUG = False # False - включены баны и кики
 POSTS = False # True - включены проверки постов и комментов
-BOT_CHAT_ID = "f7b2d964-247a-494f-9686-19fb0b0690bb"
+BOT_CHAT_ID = "set your chat id"
 
 EMAIL=os.environ.get('EMAIL') # админ сообщества И(!) ведущий в чатах
 PASSWORD=os.environ.get('PASSWORD')
@@ -59,6 +59,7 @@ client = amino.AsyncClient()
 async def taskA():
     global client
     global USERID
+    print("Try login via", EMAIL, PASSWORD)
     try:
         await client.login(email=EMAIL, password=PASSWORD)
         print("login success")
